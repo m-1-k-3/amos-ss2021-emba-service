@@ -1,18 +1,16 @@
-from django import forms
-from django.shortcuts import render
-import os
-import json
-import logging
-import sys
-
 from django.conf import settings
+
+from django import forms
+import logging
+from pathlib import Path
+
 from django.shortcuts import render
-from django.template.context_processors import csrf
 from django.template.loader import get_template
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from django.core.files.storage import FileSystemStorage
+
+
 
 
 # TODO: Add required headers like type of requests allowed later.
@@ -58,7 +56,22 @@ def start(request):
 
 # Function which renders the uploader html
 @csrf_exempt
-def upload_file(request):
+def start_analysis(request):
+    """
+    View to submit form for flags to run emba with
+    if: form is valid
+        checks if queue is not full
+            starts emba process redirects to uploader page
+        else: return Queue full
+    else: returns Invalid form error
+    Args:
+        request:
+
+    Returns:
+
+    """
+    # Safely create emba_logs directory
+    Path(f'/app/emba/{settings.LOG_ROOT}').mkdir(parents=True, exist_ok=True)
 
     if request.method == 'POST':
         form = FirmwareForm(request.POST)
@@ -76,10 +89,10 @@ def upload_file(request):
             if boundedExecutor.submit_firmware(firmware_flags=firmware_flags, firmware_file=firmware_file):
                 return HttpResponseRedirect("../../home/#uploader")
             else:
-                return HttpResponse("queue full")
+                return HttpResponse("Queue full")
         else:
-            logger.error("Posted Form is unvalid")
-            return HttpResponse("Unvalid Form")
+            logger.error("Posted Form is Invalid")
+            return HttpResponse("Invalid Form")
 
     FirmwareForm.base_fields['firmware'] = forms.ModelChoiceField(queryset=FirmwareFile.objects)
     # .values_list('file_name')
